@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from “react”;
 
 // ── Supabase config ────────────────────────────────────────────────────────────
 const SUPABASE_URL = “https://ntotnesafnnvxzuimmqv.supabase.co”;
-const SUPABASE_KEY = “sb_publishable_ARgDMbAYHEf1oLwvI1eJUA_6KQWDKpl”;
+const SUPABASE_KEY =“sb_publishable_ARgDMbAYHEf1oLwvI1eJUA_6KQWDKpl”
 const ANTHROPIC_API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY || “”;
 
 // ── Supabase REST helpers (no SDK needed, keeps bundle small) ─────────────────
