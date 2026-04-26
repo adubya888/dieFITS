@@ -603,4 +603,4 @@ export default function App() {
  if (checking) return null;
  if (!session) return <LoginScreen onLogin={handleLogin}/>;
  return <MainApp session={session} onSignOut={handleSignOut}/>;
-}
+} 
