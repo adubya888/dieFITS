@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo } from "react"
 
 const SUPABASE_URL = “https://ntotnesafnnvxzuimmqv.supabase.co”;
 const SUPABASE_KEY = “sb_publishable_ARgDMbAYHEf1oLwvI1eJUA_6KQWDKpl”;
