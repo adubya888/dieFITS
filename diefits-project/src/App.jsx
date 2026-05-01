@@ -8,7 +8,7 @@ async function sb(path, options = {}) {
   const url = `${SUPABASE_URL}/rest/v1${path}`;
   const token = localStorage.getItem("diefits_token");
   const res = await fetch(url, {
-    ...options,i
+    ...options,
     headers: {
       "apikey": SUPABASE_KEY,
       "authorization": `Bearer ${token || SUPABASE_KEY}`,
