@@ -1,7 +1,3 @@
-#!/usr/bin/env python3
-"""Build complete DieFits v4 App.jsx"""
-import os
-
 SB_URL = "https://ntotnesafnnvxzuimmqv.supabase.co"
 SB_KEY = "sb_publishable_ARgDMbAYHEf1oLwvI1eJUA_6KQWDKpl"
 
