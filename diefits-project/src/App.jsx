@@ -1,100 +1,91 @@
-SB_URL = "https://ntotnesafnnvxzuimmqv.supabase.co"
-SB_KEY = "sb_publishable_ARgDMbAYHEf1oLwvI1eJUA_6KQWDKpl"
+import { useState, useEffect, useRef, useMemo } from "react";
 
-p = []
+const SUPABASE_URL = "https://ntotnesafnnvxzuimmqv.supabase.co";
+const SUPABASE_KEY = "sb_publishable_ARgDMbAYHEf1oLwvI1eJUA_6KQWDKpl";
 
-# ========== HEADER + HELPERS ==========
-p.append(f'''import {{ useState, useEffect, useRef, useMemo }} from "react";
-
-const SUPABASE_URL = "{SB_URL}";
-const SUPABASE_KEY = "{SB_KEY}";
-
-async function sb(path, options = {{}}) {{
-  const url = `${{SUPABASE_URL}}/rest/v1${{path}}`;
+async function sb(path, options = {}) {
+  const url = `${SUPABASE_URL}/rest/v1${path}`;
   const token = localStorage.getItem("diefits_token");
-  const res = await fetch(url, {{
+  const res = await fetch(url, {
     ...options,
-    headers: {{
+    headers: {
       "apikey": SUPABASE_KEY,
-      "authorization": `Bearer ${{token || SUPABASE_KEY}}`,
+      "authorization": `Bearer ${token || SUPABASE_KEY}`,
       "content-type": "application/json",
       "prefer": "return=representation",
-      ...(options.headers || {{}}),
-    }},
-  }});
-  if (!res.ok) {{
+      ...(options.headers || {}),
+    },
+  });
+  if (!res.ok) {
     const txt = await res.text();
-    let msg = `HTTP ${{res.status}}`;
-    try {{ msg = JSON.parse(txt).message || msg; }} catch(_) {{}}
+    let msg = `HTTP ${res.status}`;
+    try { msg = JSON.parse(txt).message || msg; } catch(_) {}
     throw new Error(msg);
-  }}
+  }
   if (res.status === 204) return null;
   return await res.json();
-}}
+}
 
-async function sbAuth(path, body) {{
-  const res = await fetch(`${{SUPABASE_URL}}/auth/v1${{path}}`, {{
+async function sbAuth(path, body) {
+  const res = await fetch(`${SUPABASE_URL}/auth/v1${path}`, {
     method: "POST",
-    headers: {{ "apikey": SUPABASE_KEY, "content-type": "application/json" }},
+    headers: { "apikey": SUPABASE_KEY, "content-type": "application/json" },
     body: JSON.stringify(body),
-  }});
-  const data = await res.json().catch(() => ({{}}));
-  if (!res.ok) throw new Error(data.msg || data.error_description || data.error || `Auth error ${{res.status}}`);
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.msg || data.error_description || data.error || `Auth error ${res.status}`);
   return data;
-}}
+}
 
-async function sbUpload(file, prefix) {{
+async function sbUpload(file, prefix) {
   const token = localStorage.getItem("diefits_token");
   const ext = (file.name.split(".").pop() || "bin").toLowerCase();
-  const filename = `${{prefix}}_${{Date.now()}}_${{Math.random().toString(36).slice(2, 8)}}.${{ext}}`;
-  const url = `${{SUPABASE_URL}}/storage/v1/object/blueprints/${{filename}}`;
-  const res = await fetch(url, {{
+  const filename = `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const url = `${SUPABASE_URL}/storage/v1/object/blueprints/${filename}`;
+  const res = await fetch(url, {
     method: "POST",
-    headers: {{
+    headers: {
       "apikey": SUPABASE_KEY,
-      "authorization": `Bearer ${{token || SUPABASE_KEY}}`,
+      "authorization": `Bearer ${token || SUPABASE_KEY}`,
       "content-type": file.type || "application/octet-stream",
-    }},
+    },
     body: file,
-  }});
-  if (!res.ok) {{
+  });
+  if (!res.ok) {
     const txt = await res.text();
-    throw new Error(`Upload failed: ${{txt}}`);
-  }}
+    throw new Error(`Upload failed: ${txt}`);
+  }
   return filename;
-}}
+}
 
-async function sbSignedUrl(path) {{
+async function sbSignedUrl(path) {
   const token = localStorage.getItem("diefits_token");
-  const res = await fetch(`${{SUPABASE_URL}}/storage/v1/object/sign/blueprints/${{path}}`, {{
+  const res = await fetch(`${SUPABASE_URL}/storage/v1/object/sign/blueprints/${path}`, {
     method: "POST",
-    headers: {{
+    headers: {
       "apikey": SUPABASE_KEY,
-      "authorization": `Bearer ${{token || SUPABASE_KEY}}`,
+      "authorization": `Bearer ${token || SUPABASE_KEY}`,
       "content-type": "application/json",
-    }},
-    body: JSON.stringify({{ expiresIn: 3600 }}),
-  }});
+    },
+    body: JSON.stringify({ expiresIn: 3600 }),
+  });
   if (!res.ok) return null;
   const data = await res.json();
-  return `${{SUPABASE_URL}}/storage/v1${{data.signedURL || data.signedUrl}}`;
-}}
+  return `${SUPABASE_URL}/storage/v1${data.signedURL || data.signedUrl}`;
+}
 
-async function sbDeleteFile(path) {{
+async function sbDeleteFile(path) {
   const token = localStorage.getItem("diefits_token");
-  await fetch(`${{SUPABASE_URL}}/storage/v1/object/blueprints/${{path}}`, {{
+  await fetch(`${SUPABASE_URL}/storage/v1/object/blueprints/${path}`, {
     method: "DELETE",
-    headers: {{
+    headers: {
       "apikey": SUPABASE_KEY,
-      "authorization": `Bearer ${{token || SUPABASE_KEY}}`,
-    }},
-  }}).catch(() => {{}});
-}}
+      "authorization": `Bearer ${token || SUPABASE_KEY}`,
+    },
+  }).catch(() => {});
+}
 
-''')
-
-# ========== CONSTANTS ==========
-p.append('''const DEFAULT_TYPES = [
+const DEFAULT_TYPES = [
   "Hydraulic - Straight","Hydraulic - Elbow 90","Hydraulic - Elbow 45","Hydraulic - Tee",
   "Coolant - Straight","Coolant - Elbow 90","Coolant - Tee",
   "Air - Straight","Air - Elbow 90",
@@ -122,10 +113,7 @@ const s = {
   lbl: {display:"block",fontSize:11,color:P.muted,textTransform:"uppercase",letterSpacing:".09em",marginBottom:6,fontWeight:700},
 };
 
-''')
-
-# ========== LOGO ==========
-p.append('''function DieLogo({size=44}) {
+function DieLogo({size=44}) {
   const fontSize = size * 0.55;
   return (
     <div style={{width:size,height:size,borderRadius:size*0.18,background:`linear-gradient(145deg, #4a5260 0%, #2a3038 50%, #1a1f26 100%)`,border:`1px solid #555c66`,display:"flex",alignItems:"center",justifyContent:"center",position:"relative",boxShadow:`inset 0 1px 0 rgba(255,255,255,0.15), inset 0 -1px 0 rgba(0,0,0,0.5), 0 4px 12px rgba(0,0,0,0.4)`}}>
@@ -138,10 +126,7 @@ p.append('''function DieLogo({size=44}) {
   );
 }
 
-''')
-
-# ========== UI PRIMITIVES ==========
-p.append('''function PBtn({onClick,disabled,children,style={}}) {
+function PBtn({onClick,disabled,children,style={}}) {
   return <button onClick={onClick} disabled={!!disabled} style={{border:"none",borderRadius:8,cursor:disabled?"default":"pointer",fontFamily:"inherit",fontWeight:700,opacity:disabled?.4:1,background:`linear-gradient(135deg, ${P.accent}, ${P.accentLo})`,color:P.white,padding:"11px 16px",fontSize:14,letterSpacing:".02em",boxShadow:"0 2px 8px rgba(249,115,22,.3)",...style}}>{children}</button>;
 }
 function GBtn({onClick,children,active,style={}}) {
@@ -174,10 +159,7 @@ function Toast({msg, kind}) {
   );
 }
 
-''')
-
-# ========== PHOTO COMPONENTS ==========
-p.append('''function PhotoBox({ value, onChange, size=120, label }) {
+function PhotoBox({ value, onChange, size=120, label }) {
   const cameraRef = useRef();
   const galleryRef = useRef();
   const [loading, setLoading] = useState(false);
@@ -243,10 +225,7 @@ function PhotoViewer({src, onClose}) {
   );
 }
 
-''')
-
-# ========== LOGIN SCREEN ==========
-p.append('''function LoginScreen({ onLogin }) {
+function LoginScreen({ onLogin }) {
   const [mode, setMode] = useState("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -296,10 +275,7 @@ p.append('''function LoginScreen({ onLogin }) {
   );
 }
 
-''')
-
-# ========== PART FORM (with new fields + 2 photos) ==========
-p.append('''function PartForm({initial, onSave, onClose, onDelete}) {
+function PartForm({initial, onSave, onClose, onDelete}) {
   const [f, setF] = useState(() => initial ? {
     ...initial,
     _photo: initial.photo || "",
@@ -361,10 +337,7 @@ p.append('''function PartForm({initial, onSave, onClose, onDelete}) {
   );
 }
 
-''')
-
-# ========== DIE FORM (with photo) ==========
-p.append('''function DieForm({initial, onSave, onClose, onDelete}) {
+function DieForm({initial, onSave, onClose, onDelete}) {
   const [f, setF] = useState(() => initial ? {...initial, _photo: initial.photo || ""} : {
     name:"", customer:"", part_number:"", press_size:"", notes:"", _photo:""
   });
@@ -390,10 +363,7 @@ p.append('''function DieForm({initial, onSave, onClose, onDelete}) {
   );
 }
 
-''')
-
-# ========== ADD PART TO DIE ==========
-p.append('''function AddPartToDie({inventory, onAdd, onClose}) {
+function AddPartToDie({inventory, onAdd, onClose}) {
   const [search, setSearch] = useState("");
   const [selId, setSelId] = useState("");
   const [qty, setQty] = useState(1);
@@ -433,11 +403,8 @@ p.append('''function AddPartToDie({inventory, onAdd, onClose}) {
   );
 }
 
-''')
-
-# ========== BLUEPRINT GRID + UPLOADER ==========
-p.append('''function BlueprintThumb({ bp, onClick, onRename, onDelete, onMoveUp, onMoveDown, isFirst, isLast }) {
-  const isImage = (bp.type||"").startsWith("image/") || /\\.(jpg|jpeg|png|gif|webp)$/i.test(bp.name||bp.path||"");
+function BlueprintThumb({ bp, onClick, onRename, onDelete, onMoveUp, onMoveDown, isFirst, isLast }) {
+  const isImage = (bp.type||"").startsWith("image/") || /\.(jpg|jpeg|png|gif|webp)$/i.test(bp.name||bp.path||"");
   const [thumbUrl, setThumbUrl] = useState(null);
   useEffect(() => {
     let alive = true;
@@ -479,7 +446,7 @@ function BlueprintViewer({ bp, onClose }) {
     return () => { alive = false; };
   }, [bp?.path]);
   if (!bp) return null;
-  const isImage = (bp.type||"").startsWith("image/") || /\\.(jpg|jpeg|png|gif|webp)$/i.test(bp.name||bp.path||"");
+  const isImage = (bp.type||"").startsWith("image/") || /\.(jpg|jpeg|png|gif|webp)$/i.test(bp.name||bp.path||"");
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.95)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20,flexDirection:"column",gap:16}}>
       <button onClick={onClose} style={{position:"absolute",top:16,right:16,background:P.panel,border:`1px solid ${P.border}`,color:P.white,fontSize:18,padding:"8px 14px",borderRadius:8,cursor:"pointer",fontWeight:700}}>Close</button>
@@ -504,7 +471,7 @@ function BlueprintUploader({ onUpload, onClose }) {
   function pickFile(f) {
     if (!f) return;
     setFile(f);
-    if (!name) setName(f.name.replace(/\\.[^.]+$/, ""));
+    if (!name) setName(f.name.replace(/\.[^.]+$/, ""));
   }
   async function go() {
     if (!file || !name.trim()) return;
@@ -542,12 +509,23 @@ function BlueprintRenamer({ bp, onSave, onClose }) {
   );
 }
 
-''')
-
-# ========== SETTINGS MODAL ==========
-p.append('''function SettingsModal({settings, onSave, onClose, userEmail}) {
-  const [form, setForm] = useState({...settings});
+function SettingsModal({settings, onSave, onClose, userEmail}) {
+  const [form, setForm] = useState({
+    alert_die_edit: true,
+    alert_status_change: true,
+    alert_low_stock: true,
+    ...settings
+  });
   const set = (k,v) => setForm(p=>({...p,[k]:v}));
+  const Toggle = ({k, label, desc}) => (
+    <label style={{display:"flex",alignItems:"flex-start",gap:10,padding:"8px 0",cursor:"pointer"}}>
+      <input type="checkbox" checked={!!form[k]} onChange={e=>set(k, e.target.checked)} style={{width:18,height:18,accentColor:P.accent,marginTop:2}}/>
+      <div>
+        <div style={{fontSize:13,color:P.text,fontWeight:600}}>{label}</div>
+        {desc && <div style={{fontSize:11,color:P.muted,marginTop:2}}>{desc}</div>}
+      </div>
+    </label>
+  );
   return (
     <div style={{display:"flex",flexDirection:"column",gap:16}}>
       <div style={{background:P.bgAlt,border:`1px solid ${P.border}`,borderRadius:10,padding:14}}>
@@ -559,12 +537,17 @@ p.append('''function SettingsModal({settings, onSave, onClose, userEmail}) {
         <div><label style={s.lbl}>Business Name</label><input style={s.inp} value={form.business_name||""} onChange={e=>set("business_name",e.target.value)}/></div>
       </div>
       <div style={{background:P.bgAlt,border:`1px solid ${P.border}`,borderRadius:10,padding:14,display:"flex",flexDirection:"column",gap:10}}>
-        <div style={{fontSize:11,color:P.accent,fontWeight:800,letterSpacing:".1em"}}>LOW STOCK ALERTS</div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 2fr",gap:10}}>
-          <div><label style={s.lbl}>Threshold</label><input style={s.inp} type="number" min={0} value={form.low_stock_threshold||0} onChange={e=>set("low_stock_threshold",parseInt(e.target.value)||0)}/></div>
-          <div><label style={s.lbl}>Subject</label><input style={s.inp} value={form.alert_email_subject||""} onChange={e=>set("alert_email_subject",e.target.value)}/></div>
+        <div style={{fontSize:11,color:P.accent,fontWeight:800,letterSpacing:".1em"}}>EMAIL ALERTS</div>
+        <div style={{fontSize:11,color:P.muted,marginTop:-4}}>The address that receives all alerts. Each alert opens your email app pre-filled - just hit send.</div>
+        <div><label style={s.lbl}>Alert Recipient Email</label><input style={s.inp} type="email" value={form.low_stock_email||""} onChange={e=>set("low_stock_email",e.target.value)} placeholder="boss@company.com"/></div>
+        <div><label style={s.lbl}>Email Subject Prefix</label><input style={s.inp} value={form.alert_email_subject||""} onChange={e=>set("alert_email_subject",e.target.value)} placeholder="DieFits Alert"/></div>
+        <div style={{borderTop:`1px solid ${P.border}`,margin:"6px 0",paddingTop:8}}>
+          <div style={{fontSize:11,color:P.muted,fontWeight:700,marginBottom:6,letterSpacing:".05em",textTransform:"uppercase"}}>Send Alert When:</div>
+          <Toggle k="alert_low_stock" label="Stock runs low" desc="Manually triggered from inventory page"/>
+          <Toggle k="alert_die_edit" label="A die is edited" desc="Auto-prompts after die changes are saved"/>
+          <Toggle k="alert_status_change" label="Part status changes" desc="e.g. moved to Out for Heat Treat / Polish / Weld"/>
         </div>
-        <div><label style={s.lbl}>Email Recipient</label><input style={s.inp} type="email" value={form.low_stock_email||""} onChange={e=>set("low_stock_email",e.target.value)}/></div>
+        <div><label style={s.lbl}>Low Stock Threshold</label><input style={s.inp} type="number" min={0} value={form.low_stock_threshold||0} onChange={e=>set("low_stock_threshold",parseInt(e.target.value)||0)}/></div>
       </div>
       <div style={{display:"flex",gap:10}}>
         <GBtn onClick={onClose} style={{flex:1,padding:11}}>Cancel</GBtn>
@@ -574,10 +557,247 @@ p.append('''function SettingsModal({settings, onSave, onClose, userEmail}) {
   );
 }
 
-''')
+// ===== Tutorial Mockup Components - little diagrams that look like the app UI =====
+function MockChrome({ title, children, height }) {
+  return (
+    <div style={{background:P.bg,border:`1px solid ${P.border}`,borderRadius:10,overflow:"hidden",margin:"12px 0"}}>
+      <div style={{background:P.panel,padding:"6px 10px",borderBottom:`1px solid ${P.border}`,display:"flex",alignItems:"center",gap:6}}>
+        <div style={{display:"flex",flexDirection:"column",gap:2}}>
+          <div style={{width:14,height:1.5,background:P.accent,borderRadius:1}}/>
+          <div style={{width:14,height:1.5,background:P.accent,borderRadius:1}}/>
+          <div style={{width:14,height:1.5,background:P.accent,borderRadius:1}}/>
+        </div>
+        <div style={{fontFamily:"'Black Ops One', 'Rajdhani', sans-serif",fontSize:11,letterSpacing:".1em",color:P.white,fontWeight:900}}>DIEFITS</div>
+        <div style={{fontSize:8,color:P.accent,letterSpacing:".15em",fontWeight:800}}>{title}</div>
+      </div>
+      <div style={{padding:10,minHeight:height||"auto",position:"relative"}}>
+        {children}
+      </div>
+    </div>
+  );
+}
 
-# ========== TUTORIAL ==========
-p.append('''function TutorialPage() {
+function Arrow({ from, to, label, color }) {
+  // from = {x, y} percentage, to = {x, y} percentage
+  const c = color || P.accent;
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+  const len = Math.sqrt(dx*dx + dy*dy);
+  return (
+    <>
+      <div style={{
+        position:"absolute",
+        left:`${from.x}%`, top:`${from.y}%`,
+        width:`${len}%`, height:0,
+        borderTop:`2px dashed ${c}`,
+        transformOrigin:"0 50%",
+        transform:`rotate(${angle}deg)`,
+        pointerEvents:"none", zIndex:5
+      }}/>
+      <div style={{
+        position:"absolute",
+        left:`${to.x}%`, top:`${to.y}%`,
+        width:0, height:0,
+        borderLeft:`8px solid ${c}`,
+        borderTop:"5px solid transparent",
+        borderBottom:"5px solid transparent",
+        transformOrigin:"0 50%",
+        transform:`rotate(${angle}deg) translate(-8px, -50%)`,
+        pointerEvents:"none", zIndex:5
+      }}/>
+      {label && <div style={{
+        position:"absolute",
+        left:`${(from.x+to.x)/2}%`, top:`${(from.y+to.y)/2 - 8}%`,
+        background:c, color:P.bg,
+        fontSize:10, fontWeight:800, padding:"2px 7px", borderRadius:4,
+        transform:"translate(-50%, 0)",
+        whiteSpace:"nowrap", letterSpacing:".05em", textTransform:"uppercase",
+        pointerEvents:"none", zIndex:6
+      }}>{label}</div>}
+    </>
+  );
+}
+
+// Mockup 1: Adding a part - shows the "+ Add Part" button highlighted
+function Mockup_AddPart() {
+  return (
+    <MockChrome title="INVENTORY" height={170}>
+      <div style={{display:"flex",gap:6,marginBottom:8}}>
+        <div style={{flex:1,height:30,background:P.bgAlt,border:`1px solid ${P.border}`,borderRadius:6,display:"flex",alignItems:"center",padding:"0 10px",fontSize:10,color:P.mutedLo}}>Search...</div>
+        <div style={{padding:"6px 10px",border:`1px solid ${P.border}`,borderRadius:6,fontSize:10,color:P.textDim,fontWeight:600}}>Filter</div>
+        <div style={{
+          padding:"6px 12px",borderRadius:6,
+          background:`linear-gradient(135deg,${P.accent},${P.accentLo})`,
+          color:P.white,fontSize:10,fontWeight:800,
+          boxShadow:`0 0 0 3px rgba(249,115,22,.3), 0 0 0 6px rgba(249,115,22,.15)`,
+          position:"relative",zIndex:3
+        }}>+ Add Part</div>
+      </div>
+      <div style={{background:P.panel,borderRadius:6,border:`1px solid ${P.border}`,padding:10}}>
+        <div style={{height:8,background:P.bgAlt,borderRadius:2,marginBottom:6,width:"40%"}}/>
+        <div style={{height:5,background:P.bgAlt,borderRadius:2,width:"70%"}}/>
+      </div>
+      <div style={{position:"absolute",top:60,right:60,background:P.accent,color:P.bg,fontSize:9,fontWeight:800,padding:"3px 8px",borderRadius:4,letterSpacing:".05em",textTransform:"uppercase",zIndex:6}}>Tap here</div>
+      <div style={{position:"absolute",top:74,right:84,width:0,height:0,borderTop:`6px solid ${P.accent}`,borderLeft:"4px solid transparent",borderRight:"4px solid transparent"}}/>
+    </MockChrome>
+  );
+}
+
+// Mockup 2: Two photos with flip badge
+function Mockup_TwoPhotos() {
+  return (
+    <MockChrome title="INVENTORY" height={140}>
+      <div style={{background:P.panel,borderRadius:6,border:`1px solid ${P.border}`,padding:10,display:"flex",alignItems:"center",gap:10}}>
+        <div style={{position:"relative"}}>
+          <div style={{width:50,height:50,background:`linear-gradient(135deg, #444, #222)`,borderRadius:6,border:`2px solid ${P.accent}`,display:"flex",alignItems:"center",justifyContent:"center",color:P.muted,fontSize:9,fontWeight:700}}>PHOTO</div>
+          <div style={{position:"absolute",bottom:-4,right:-4,background:P.accent,color:P.white,borderRadius:"50%",width:18,height:18,fontSize:9,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",border:`2px solid ${P.panel}`}}>2</div>
+        </div>
+        <div style={{flex:1}}>
+          <div style={{height:8,background:P.bgAlt,borderRadius:2,marginBottom:5,width:"60%"}}/>
+          <div style={{height:5,background:P.bgAlt,borderRadius:2,width:"80%"}}/>
+        </div>
+      </div>
+      <div style={{position:"absolute",top:46,left:90,background:P.accent,color:P.bg,fontSize:9,fontWeight:800,padding:"3px 8px",borderRadius:4,letterSpacing:".05em",textTransform:"uppercase"}}>Tap photo to flip</div>
+      <div style={{position:"absolute",top:60,left:62,width:24,height:2,background:P.accent,transform:"rotate(-15deg)"}}/>
+      <div style={{position:"absolute",top:48,left:84,width:0,height:0,borderRight:`6px solid ${P.accent}`,borderTop:"4px solid transparent",borderBottom:"4px solid transparent"}}/>
+      <div style={{marginTop:10,fontSize:11,color:P.muted,fontStyle:"italic",textAlign:"center"}}>Orange "2" badge means a second photo exists</div>
+    </MockChrome>
+  );
+}
+
+// Mockup 3: Filter panel
+function Mockup_Filter() {
+  return (
+    <MockChrome title="INVENTORY" height={200}>
+      <div style={{display:"flex",gap:6,marginBottom:8}}>
+        <div style={{flex:1,height:30,background:P.bgAlt,border:`1px solid ${P.border}`,borderRadius:6}}/>
+        <div style={{
+          padding:"6px 10px",border:`2px solid ${P.accent}`,borderRadius:6,
+          fontSize:10,color:P.accentHi,fontWeight:800,
+          background:"rgba(249,115,22,.15)",
+          boxShadow:`0 0 0 3px rgba(249,115,22,.2)`,
+          position:"relative",zIndex:3
+        }}>Filter (2)</div>
+        <div style={{padding:"6px 12px",borderRadius:6,background:P.bgAlt,color:P.muted,fontSize:10,fontWeight:600}}>+ Add</div>
+      </div>
+      <div style={{background:P.panel,border:`1px solid ${P.border}`,borderRadius:6,padding:10}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:8}}>
+          <div>
+            <div style={{fontSize:8,color:P.muted,marginBottom:3,fontWeight:700,letterSpacing:".05em"}}>CATEGORY</div>
+            <div style={{height:24,background:P.bg,border:`1px solid ${P.accent}`,borderRadius:4,padding:"4px 6px",fontSize:9,color:P.accentHi,fontWeight:600}}>Ejector</div>
+          </div>
+          <div>
+            <div style={{fontSize:8,color:P.muted,marginBottom:3,fontWeight:700,letterSpacing:".05em"}}>LOCATION</div>
+            <div style={{height:24,background:P.bg,border:`1px solid ${P.border}`,borderRadius:4,padding:"4px 6px",fontSize:9,color:P.muted,fontWeight:600}}>All locations</div>
+          </div>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:6}}>
+          <div style={{width:14,height:14,background:P.accent,border:`1px solid ${P.accent}`,borderRadius:3,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,color:P.white,fontWeight:900}}>v</div>
+          <span style={{fontSize:10,color:P.text,fontWeight:600}}>Low stock only</span>
+        </div>
+      </div>
+      <div style={{position:"absolute",top:36,right:78,fontSize:9,color:P.accent,fontWeight:800}}>Number = active filters</div>
+      <div style={{marginTop:10,fontSize:11,color:P.muted,fontStyle:"italic",textAlign:"center"}}>Combine category + location + low stock all at once</div>
+    </MockChrome>
+  );
+}
+
+// Mockup 4: Status badge
+function Mockup_Status() {
+  return (
+    <MockChrome title="INVENTORY" height={180}>
+      <div style={{background:P.panel,borderRadius:6,border:`1px solid ${P.border}`,padding:10,display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+        <div style={{width:40,height:40,background:"#333",borderRadius:6,border:`1px solid ${P.border}`}}/>
+        <div style={{flex:1}}>
+          <div style={{display:"flex",alignItems:"baseline",gap:6,marginBottom:4}}>
+            <div style={{fontFamily:"'Rajdhani',sans-serif",fontWeight:700,fontSize:13,color:P.white}}>EJ-4821</div>
+            <div style={{fontSize:8,padding:"1px 5px",background:"rgba(249,115,22,.15)",color:P.accentHi,borderRadius:3,fontWeight:700,textTransform:"uppercase"}}>EJECTOR</div>
+          </div>
+          <div style={{display:"inline-block",fontSize:9,padding:"2px 6px",background:"#d2992222",color:"#d29922",borderRadius:3,fontWeight:700,letterSpacing:".05em",textTransform:"uppercase"}}>Out for Heat Treat</div>
+        </div>
+      </div>
+      <div style={{background:P.panel,borderRadius:6,border:`1px solid ${P.border}`,padding:10,display:"flex",alignItems:"center",gap:10}}>
+        <div style={{width:40,height:40,background:"#333",borderRadius:6,border:`1px solid ${P.border}`}}/>
+        <div style={{flex:1}}>
+          <div style={{display:"flex",alignItems:"baseline",gap:6,marginBottom:4}}>
+            <div style={{fontFamily:"'Rajdhani',sans-serif",fontWeight:700,fontSize:13,color:P.white}}>CV-2210</div>
+            <div style={{fontSize:8,padding:"1px 5px",background:"rgba(249,115,22,.15)",color:P.accentHi,borderRadius:3,fontWeight:700,textTransform:"uppercase"}}>COVER</div>
+          </div>
+          <div style={{display:"inline-block",fontSize:9,padding:"2px 6px",background:"#fb923c22",color:"#fb923c",borderRadius:3,fontWeight:700,letterSpacing:".05em",textTransform:"uppercase"}}>Out for Polish</div>
+        </div>
+      </div>
+      <div style={{marginTop:10,fontSize:11,color:P.muted,fontStyle:"italic",textAlign:"center"}}>Status badges show at-a-glance where parts are</div>
+    </MockChrome>
+  );
+}
+
+// Mockup 5: Die folder with blueprints grid
+function Mockup_Blueprints() {
+  return (
+    <MockChrome title="DIE: ACME #4" height={210}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+        <div style={{fontSize:11,fontWeight:700,color:P.white,fontFamily:"'Rajdhani',sans-serif",letterSpacing:".05em",textTransform:"uppercase"}}>Blueprints</div>
+        <div style={{
+          padding:"4px 8px",borderRadius:4,
+          background:`linear-gradient(135deg,${P.accent},${P.accentLo})`,
+          color:P.white,fontSize:9,fontWeight:800,
+          boxShadow:`0 0 0 3px rgba(249,115,22,.25)`,
+        }}>+ Add Blueprint</div>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6}}>
+        {["Top View","Side Detail","Punch.pdf"].map((n,i)=>(
+          <div key={n} style={{background:P.panel,border:`1px solid ${P.border}`,borderRadius:5,overflow:"hidden"}}>
+            <div style={{height:50,background:i===2?P.bg:`linear-gradient(135deg,#444,#222)`,display:"flex",alignItems:"center",justifyContent:"center"}}>
+              {i===2 ? <div style={{fontFamily:"'Rajdhani',sans-serif",fontWeight:900,color:P.accent,fontSize:14}}>PDF</div> : <div style={{color:P.muted,fontSize:8}}>image</div>}
+            </div>
+            <div style={{padding:"4px 6px",borderTop:`1px solid ${P.border}`}}>
+              <div style={{fontSize:9,color:P.text,fontWeight:600,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{n}</div>
+              <div style={{display:"flex",gap:2,marginTop:3}}>
+                <div style={{flex:1,fontSize:7,color:P.muted,padding:"1px 0",background:"transparent",border:`1px solid ${P.border}`,borderRadius:2,textAlign:"center",fontWeight:700}}>UP</div>
+                <div style={{flex:1,fontSize:7,color:P.muted,padding:"1px 0",border:`1px solid ${P.border}`,borderRadius:2,textAlign:"center",fontWeight:700}}>DN</div>
+                <div style={{flex:1.5,fontSize:7,color:P.accentHi,padding:"1px 0",border:`1px solid ${P.border}`,borderRadius:2,textAlign:"center",fontWeight:700}}>EDIT</div>
+                <div style={{flex:1,fontSize:7,color:P.red,padding:"1px 0",border:`1px solid ${P.border}`,borderRadius:2,textAlign:"center",fontWeight:700}}>DEL</div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div style={{marginTop:8,fontSize:11,color:P.muted,fontStyle:"italic",textAlign:"center"}}>Tap any thumbnail to view full size</div>
+    </MockChrome>
+  );
+}
+
+// Mockup 6: Settings - email alerts section
+function Mockup_Settings() {
+  return (
+    <MockChrome title="SETTINGS" height={210}>
+      <div style={{background:P.bgAlt,border:`1px solid ${P.border}`,borderRadius:6,padding:10}}>
+        <div style={{fontSize:9,color:P.accent,fontWeight:800,marginBottom:8,letterSpacing:".1em"}}>EMAIL ALERTS</div>
+        <div style={{marginBottom:8}}>
+          <div style={{fontSize:8,color:P.muted,marginBottom:3,fontWeight:700,letterSpacing:".05em"}}>ALERT RECIPIENT</div>
+          <div style={{height:22,background:P.bg,border:`1px solid ${P.accent}`,borderRadius:4,padding:"3px 6px",fontSize:9,color:P.accentHi,fontWeight:600,boxShadow:`0 0 0 2px rgba(249,115,22,.2)`}}>boss@yourshop.com</div>
+        </div>
+        <div style={{borderTop:`1px solid ${P.border}`,paddingTop:6}}>
+          <div style={{fontSize:8,color:P.muted,fontWeight:700,marginBottom:5,letterSpacing:".05em"}}>SEND ALERT WHEN:</div>
+          {[
+            ["Stock runs low", true],
+            ["A die is edited", true],
+            ["Part status changes", true],
+          ].map(([label,on])=>(
+            <div key={label} style={{display:"flex",alignItems:"center",gap:6,padding:"3px 0"}}>
+              <div style={{width:12,height:12,background:on?P.accent:"transparent",border:`1px solid ${on?P.accent:P.border}`,borderRadius:2,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,color:P.white,fontWeight:900}}>{on?"v":""}</div>
+              <span style={{fontSize:9,color:P.text,fontWeight:600}}>{label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div style={{marginTop:8,fontSize:11,color:P.muted,fontStyle:"italic",textAlign:"center"}}>One email address gets all the alerts you turn on</div>
+    </MockChrome>
+  );
+}
+
+function TutorialPage() {
   const sect = (n,t,body) => (
     <div style={{background:P.panel,border:`1px solid ${P.border}`,borderRadius:12,padding:20,marginBottom:14}}>
       <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
@@ -593,34 +813,89 @@ p.append('''function TutorialPage() {
         <div style={{fontFamily:"'Rajdhani',sans-serif",fontWeight:700,fontSize:28,color:P.white,letterSpacing:".05em",textTransform:"uppercase"}}>How to Use DieFits</div>
         <div style={{fontSize:13,color:P.muted,marginTop:6}}>A quick guide for your shop crew</div>
       </div>
-      {sect("1","Add a Part",<>
-        <p>Tap <b style={{color:P.accentHi}}>Inventory</b>, then <b>+ Add Part</b>. Take a photo or two with the camera or pick from your gallery. Fill in the part number, quantity, type, size, and any other fields you want.</p>
-        <p><b>New in v4:</b> Pick a category (Ejector, Cover, Top Slide, etc), record hardness/heat treat, lead time, and current status (In Stock, Out for Heat Treat, etc).</p>
+
+      {sect("1","Add a Part to Inventory",<>
+        <p>From the <b style={{color:P.accentHi}}>Inventory</b> page, tap the orange <b>+ Add Part</b> button at the top right.</p>
+        <Mockup_AddPart/>
+        <p>Fill in:</p>
+        <ul style={{paddingLeft:20,margin:"6px 0"}}>
+          <li><b>Part Number</b> and <b>Quantity</b> (required)</li>
+          <li><b>Category</b>: Ejector, Cover, Top Slide, Bottom Slide, Helper, Operator, or Die Base</li>
+          <li><b>Type</b> and <b>Size</b></li>
+          <li><b>Hardness/Heat Treat</b> (e.g. "58-60 HRC")</li>
+          <li><b>Lead Time</b> from supplier (e.g. "2 weeks")</li>
+          <li><b>Status</b>: In Stock, Out for Heat Treat, Out for Polish, or Out for Weld</li>
+        </ul>
       </>)}
+
       {sect("2","Two Photos Per Part",<>
-        <p>You can add a primary photo AND a secondary photo to each part - useful for showing different angles or close-ups of detail. On the inventory list, tap the photo on a part card to flip between them.</p>
+        <p>You can add a primary photo AND a secondary photo - useful for different angles or close-ups.</p>
+        <Mockup_TwoPhotos/>
+        <p>On the inventory list, the orange <b>"2"</b> badge in the corner means a second photo exists. <b>Tap the photo</b> to flip between them. The badge shows which one you're viewing (<b>1</b> or <b>2</b>).</p>
       </>)}
-      {sect("3","Multi-Filter Inventory",<>
-        <p>Tap the <b>Filter</b> button above the inventory list. You can filter by category (only ejectors, only top slides, etc), low stock, AND location all at the same time.</p>
+
+      {sect("3","Multi-Filter the Inventory List",<>
+        <p>Tap the <b style={{color:P.accentHi}}>Filter</b> button between the search bar and Add Part button.</p>
+        <Mockup_Filter/>
+        <p>Filter by:</p>
+        <ul style={{paddingLeft:20,margin:"6px 0"}}>
+          <li><b>Category</b> - show only ejectors, only top slides, etc.</li>
+          <li><b>Location</b> - show only parts in a specific bin</li>
+          <li><b>Low stock</b> - check the box to see what needs reordering</li>
+        </ul>
+        <p>You can combine all three at once. The number on the Filter button (e.g. "Filter (2)") tells you how many filters are active.</p>
       </>)}
-      {sect("4","Catalog a Die",<>
-        <p>Tap <b style={{color:P.accentHi}}>Dies</b>, then <b>+ New Die</b>. Add a die photo (the actual die or the part it makes). Then go into the die and add parts from your inventory.</p>
+
+      {sect("4","Status Badges Show At a Glance",<>
+        <p>Each part shows its current status right on the card so anyone scrolling can see where it is.</p>
+        <Mockup_Status/>
+        <p>When you change a part's status (say from "Out for Heat Treat" back to "In Stock"), DieFits will automatically prompt you to send an alert email if you have that turned on (see Step 7).</p>
       </>)}
-      {sect("5","Blueprints Folder",<>
-        <p>Inside each die, scroll down to <b>Blueprints</b>. Tap <b>+ Add Blueprint</b> to upload a photo, PDF, or any file. Give it a name like "Top View" or "Punch Detail".</p>
-        <p>Tap any blueprint thumbnail to view it. Use the UP/DN buttons to reorder. Tap EDIT to rename.</p>
+
+      {sect("5","Catalog a Die",<>
+        <p>From the <b style={{color:P.accentHi}}>Dies</b> page, tap <b>+ New Die</b>. Add:</p>
+        <ul style={{paddingLeft:20,margin:"6px 0"}}>
+          <li>A <b>photo</b> of the die or the part it makes</li>
+          <li>The die <b>name</b>, <b>customer</b>, <b>part number made</b>, and <b>press size</b></li>
+          <li>Any notes about the die</li>
+        </ul>
+        <p>Once created, tap the die to open it. Inside, you can add parts from your inventory and upload blueprints.</p>
       </>)}
-      {sect("6","Sync Across Devices",<>
-        <p>Everything syncs automatically every 5 seconds. Add a part on the shop floor, see it on the office PC. Same with dies and blueprints.</p>
+
+      {sect("6","Blueprints Folder per Die",<>
+        <p>Inside each die, you'll see a <b>Blueprints</b> section below the parts list. Tap <b>+ Add Blueprint</b> to upload.</p>
+        <Mockup_Blueprints/>
+        <p>You can upload <b>any file type</b> - PDFs, photos, DXF files, anything. Give each blueprint a name like "Top View" or "Punch Detail".</p>
+        <p>The buttons under each thumbnail let you:</p>
+        <ul style={{paddingLeft:20,margin:"6px 0"}}>
+          <li><b>UP</b> / <b>DN</b> - reorder blueprints</li>
+          <li><b>EDIT</b> - rename the blueprint</li>
+          <li><b>DEL</b> - delete it permanently</li>
+        </ul>
+        <p>Tap any thumbnail to view the file. Photos open in the viewer; PDFs and other files open in a new browser tab.</p>
+      </>)}
+
+      {sect("7","Email Alerts Setup",<>
+        <p>DieFits can email you whenever something important happens. Open the menu (top-left), tap <b>Settings</b>, and find the <b>Email Alerts</b> section.</p>
+        <Mockup_Settings/>
+        <p>Enter the email address that should receive alerts (your boss, foreman, or just yourself), then turn on which alerts you want:</p>
+        <ul style={{paddingLeft:20,margin:"6px 0"}}>
+          <li><b>Stock runs low</b> - tap the orange Email button on the Low Stock card</li>
+          <li><b>A die is edited</b> - automatic email after saving die changes</li>
+          <li><b>Part status changes</b> - automatic email when a part moves to/from heat treat, polish, weld, etc.</li>
+        </ul>
+        <p style={{background:P.bg,border:`1px solid ${P.border}`,borderRadius:6,padding:10,fontSize:13}}><b style={{color:P.accentHi}}>How it works:</b> When an alert fires, your phone or computer's email app opens with the message already filled in. You just hit Send. This works on every device with no extra setup, and the recipient gets a real email they can save and forward.</p>
+      </>)}
+
+      {sect("8","Sync Across Devices",<>
+        <p>Everything syncs automatically every 5 seconds. Add a part on the shop floor with your phone, see it on the office PC immediately. Same with dies and blueprints.</p>
+        <p>Anyone you give a sign-in to can use the same data. For different shops or buildings that should NOT see each other, create separate accounts.</p>
       </>)}
     </div>
   );
 }
 
-''')
-
-# ========== DRAWER ==========
-p.append('''function Drawer({open, onClose, currentPage, setPage, settings, userEmail, onSettings, onSignOut}) {
+function Drawer({open, onClose, currentPage, setPage, settings, userEmail, onSettings, onSignOut}) {
   if (!open) return null;
   const items = [
     {id:"inventory", label:"Inventory"},
@@ -653,10 +928,7 @@ p.append('''function Drawer({open, onClose, currentPage, setPage, settings, user
   );
 }
 
-''')
-
-# ========== MAIN APP - START ==========
-p.append('''function MainApp({ session, onSignOut }) {
+function MainApp({ session, onSignOut }) {
   const [page, setPage] = useState("inventory");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [inv, setInv] = useState([]);
@@ -732,10 +1004,7 @@ p.append('''function MainApp({ session, onSignOut }) {
   }), [inv, search, filterCategory, filterLow, filterLocation, settings.low_stock_threshold]);
   const activeFilterCount = (filterCategory?1:0) + (filterLow?1:0) + (filterLocation?1:0);
 
-''')
-
-# ========== MAIN APP - SAVE/DELETE FUNCTIONS ==========
-p.append('''  async function savePart(form) {
+  async function savePart(form) {
     const dbPayload = {
       pn:form.pn, type:form.type, size:form.size, qty:form.qty,
       material:form.material||"", supplier:form.supplier||"",
@@ -744,6 +1013,13 @@ p.append('''  async function savePart(form) {
       category:form.category||"", hardness:form.hardness||"",
       lead_time:form.lead_time||"", status:form.status||"In Stock"
     };
+    // Detect status change BEFORE save (only for edits, not new parts)
+    let statusChanged = null;
+    if (modal !== "add" && modal && modal.status !== undefined) {
+      const oldStatus = modal.status || "In Stock";
+      const newStatus = dbPayload.status;
+      if (oldStatus !== newStatus) statusChanged = { oldStatus, newStatus };
+    }
     try {
       if (modal === "add") {
         const [created] = await sb("/inventory", {method:"POST", body: JSON.stringify(dbPayload)});
@@ -754,6 +1030,10 @@ p.append('''  async function savePart(form) {
         const updated = await sb(`/inventory?id=eq.${modal.id}`, {method:"PATCH", body: JSON.stringify(dbPayload)});
         setInv(v=>v.map(x=>x.id===modal.id?{...x,...(updated?.[0]||dbPayload)}:x));
         showToast(form.pn+" updated");
+        // Fire status change email AFTER successful save
+        if (statusChanged) {
+          setTimeout(() => emailStatusChange({...modal, ...dbPayload}, statusChanged.oldStatus, statusChanged.newStatus), 300);
+        }
       }
     } catch(e) { showToast("Save failed: "+e.message,"error"); }
     setModal(null);
@@ -788,6 +1068,7 @@ p.append('''  async function savePart(form) {
         const [created] = await sb("/dies", {method:"POST", body: JSON.stringify(payload)});
         setDies(ds => [created, ...ds]);
         showToast("Die created: " + form.name);
+        setTimeout(() => emailDieEdit(created || payload, "created"), 300);
       } else {
         const payload = {
           name:form.name, customer:form.customer||"",
@@ -799,6 +1080,7 @@ p.append('''  async function savePart(form) {
         setDies(ds => ds.map(d => d.id === modal.id ? {...d, ...(updated?.[0] || payload)} : d));
         if (openDie && openDie.id === modal.id) setOpenDie({...openDie, ...payload});
         showToast("Die updated");
+        setTimeout(() => emailDieEdit({...modal, ...payload}, "edited"), 300);
       }
     } catch(e) { showToast("Save failed: " + e.message, "error"); }
     setModal(null);
@@ -904,22 +1186,60 @@ p.append('''  async function savePart(form) {
     setModal(null);
   }
 
+  function openMailto(subject, body) {
+    if (!settings.low_stock_email) {
+      showToast("Set alert email in Settings first", "error");
+      return false;
+    }
+    const subj = encodeURIComponent((settings.alert_email_subject || "DieFits Alert") + " - " + subject);
+    const url = "mailto:" + settings.low_stock_email + "?subject=" + subj + "&body=" + encodeURIComponent(body);
+    window.location.href = url;
+    return true;
+  }
+
+  function emailDieEdit(die, action) {
+    if (!settings.alert_die_edit) return;
+    if (!settings.low_stock_email) return;
+    const body = "Die " + action + " from " + (settings.business_name||"DieFits") + "\n\n" +
+      "Die: " + die.name + "\n" +
+      (die.customer ? "Customer: " + die.customer + "\n" : "") +
+      (die.part_number ? "Part Number: " + die.part_number + "\n" : "") +
+      (die.press_size ? "Press: " + die.press_size + "\n" : "") +
+      "Parts in die: " + (die.parts||[]).length + "\n" +
+      "Blueprints: " + (die.blueprints||[]).length + "\n" +
+      "Updated: " + new Date().toLocaleString() + "\n\n" +
+      (die.notes ? "Notes:\n" + die.notes : "");
+    openMailto("Die " + action + ": " + die.name, body);
+  }
+
+  function emailStatusChange(part, oldStatus, newStatus) {
+    if (!settings.alert_status_change) return;
+    if (!settings.low_stock_email) return;
+    const body = "Part Status Change at " + (settings.business_name||"DieFits") + "\n\n" +
+      "Part: " + part.pn + "\n" +
+      "Type: " + (part.type||"-") + " " + (part.size||"") + "\n" +
+      (part.category ? "Category: " + part.category + "\n" : "") +
+      "\n" +
+      "Status: " + oldStatus + "  ->  " + newStatus + "\n\n" +
+      (part.location ? "Location: " + part.location + "\n" : "") +
+      (part.supplier ? "Supplier: " + part.supplier + "\n" : "") +
+      (part.lead_time ? "Lead Time: " + part.lead_time + "\n" : "") +
+      "Changed: " + new Date().toLocaleString();
+    openMailto("Status: " + part.pn + " is now " + newStatus, body);
+  }
+
   function emailLowStock() {
+    if (settings.alert_low_stock === false) { showToast("Low stock alerts are off in Settings","info"); return; }
     const lowItems = inv.filter(f=>f.qty<=settings.low_stock_threshold);
     if (lowItems.length===0) { showToast("No low stock","info"); return; }
-    if (!settings.low_stock_email) { showToast("Set alert email in Settings","error"); return; }
-    const body = "Low Stock Alert from "+settings.business_name+"\\n\\nParts at or below threshold ("+settings.low_stock_threshold+"):\\n\\n" +
-      lowItems.map(f=>"- "+f.pn+" "+f.type+" "+f.size+": "+f.qty+" left"+(f.supplier?" (Supplier: "+f.supplier+")":"")+(f.location?" (Location: "+f.location+")":"")).join("\\n");
-    const subject = encodeURIComponent(settings.alert_email_subject + " - " + lowItems.length + " item(s)");
-    window.location.href = "mailto:"+settings.low_stock_email+"?subject="+subject+"&body="+encodeURIComponent(body);
+    const body = "Low Stock Alert from "+(settings.business_name||"DieFits")+"\n\nParts at or below threshold ("+settings.low_stock_threshold+"):\n\n" +
+      lowItems.map(f=>"- "+f.pn+" "+f.type+" "+f.size+": "+f.qty+" left"+(f.supplier?" (Supplier: "+f.supplier+")":"")+(f.location?" (Location: "+f.location+")":"")).join("\n");
+    openMailto("Low Stock - " + lowItems.length + " item(s)", body);
   }
 
   if (!loaded) return <div style={{minHeight:"100vh",background:P.bg,color:P.muted,fontFamily:"sans-serif",display:"flex",alignItems:"center",justifyContent:"center"}}>Loading...</div>;
 
-''')
-
-# ========== MAIN APP - RENDER ==========
-p.append('''  return (
+  return (
     <div style={{minHeight:"100vh",background:`linear-gradient(180deg, ${P.bg} 0%, ${P.bgAlt} 100%)`,color:P.text,fontFamily:"'DM Sans',sans-serif"}}>
       <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Rajdhani:wght@600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
       <style>{`input:focus,select:focus,textarea:focus{border-color:${P.accent}!important;box-shadow:0 0 0 3px rgba(249,115,22,.15)} button:hover:not(:disabled){filter:brightness(1.1)}`}</style>
@@ -1034,10 +1354,7 @@ p.append('''  return (
           </div>
         </>}
 
-''')
-
-# ========== DIES PAGE ==========
-p.append('''        {page==="dies" && !openDie && <>
+        {page==="dies" && !openDie && <>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
             <div>
               <div style={{fontFamily:"'Rajdhani',sans-serif",fontWeight:700,fontSize:22,color:P.white,letterSpacing:".05em",textTransform:"uppercase"}}>Die Catalog</div>
@@ -1153,10 +1470,7 @@ p.append('''        {page==="dies" && !openDie && <>
         })()}
       </div>
 
-''')
-
-# ========== MODALS ==========
-p.append('''      {modal==="settings"&&<Modal title="Settings" onClose={()=>setModal(null)}>
+      {modal==="settings"&&<Modal title="Settings" onClose={()=>setModal(null)}>
         <SettingsModal settings={settings} onSave={handleSettingsSave} onClose={()=>setModal(null)} userEmail={session.user.email}/>
       </Modal>}
       {modal==="add"&&<Modal title="Add New Part" onClose={()=>setModal(null)} wide>
@@ -1196,10 +1510,7 @@ p.append('''      {modal==="settings"&&<Modal title="Settings" onClose={()=>setM
   );
 }
 
-''')
-
-# ========== ROOT APP ==========
-p.append('''export default function App() {
+export default function App() {
   const [session, setSession] = useState(null);
   const [checking, setChecking] = useState(true);
   useEffect(() => {
@@ -1220,21 +1531,3 @@ p.append('''export default function App() {
   if (!session) return <LoginScreen onLogin={handleLogin}/>;
   return <MainApp session={session} onSignOut={handleSignOut}/>;
 }
-''')
-
-# === SAVE + VALIDATE ===
-content = "".join(p)
-os.makedirs('/mnt/user-data/outputs', exist_ok=True)
-with open('/mnt/user-data/outputs/App.jsx', 'w') as f:
-    f.write(content)
-
-# Validation
-non_ascii = sum(1 for c in content if ord(c) > 127)
-smart_quotes = sum(1 for c in content if c in '\u201c\u201d\u2018\u2019')
-ob, cb = content.count('{'), content.count('}')
-op, cp = content.count('('), content.count(')')
-print(f"Size: {len(content)} chars, {content.count(chr(10))+1} lines")
-print(f"Non-ASCII: {non_ascii}")
-print(f"Smart quotes: {smart_quotes}")
-print(f"Braces: {ob}/{cb} {'OK' if ob==cb else 'MISMATCH!'}")
-print(f"Parens: {op}/{cp} {'OK' if op==cp else 'MISMATCH!'}")
